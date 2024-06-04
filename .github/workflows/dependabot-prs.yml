@@ -4,6 +4,8 @@ on:
   pull_request_target:
 jobs:
   build:
+    name: build
+    if: github.event_name == 'pull_request'|| github.event_name == pull_request_target
     permissions:
       pull-requests: read
     runs-on: ubuntu-latest
