@@ -1,6 +1,7 @@
 name: Dependabot Pull Request
 on: 
   workflow_call:
+  pull_request_target:
 jobs:
   build:
     permissions:
