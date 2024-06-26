@@ -1,12 +1,17 @@
 name: rwf-terraform-CD
 'on':
   workflow_call:
-
+    inputs:
+      app_env:
+        description: The environment 
+        type: string
+        required: true
+        default: 'dev'
 jobs:
   tf-cd:
     name: tf-cd
     runs-on: ubuntu-latest
-    environment: prod
+    environment: ${{inputs.app_env}}
     permissions:
         contents: write
         security-events: write
@@ -36,7 +41,7 @@ jobs:
         run: |
             ls
             terraform init 
-            terraform apply --auto-approve ./test.tfplan
+            terraform apply --auto-approve ./test.tfplan.   # use env.tfvars
                 
                 
                 
