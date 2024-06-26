@@ -6,6 +6,7 @@ jobs:
   tf-cd:
     name: tf-cd
     runs-on: ubuntu-latest
+    environment: prod
     permissions:
         contents: write
         security-events: write
