@@ -12,7 +12,6 @@ jobs:
         id-token: write
         packages: write
         actions: read
-        pull-requests: read
     steps:
       - name: 'Checkout'
         uses: actions/checkout@master
