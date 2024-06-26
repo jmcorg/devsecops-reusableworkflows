@@ -1,0 +1,38 @@
+name: rwf-terraform-CD
+'on':
+  workflow_call:
+
+jobs:
+  tf-cd:
+    name: tf-cd
+    runs-on: ubuntu-latest
+    permissions:
+        contents: write
+        security-events: write
+        id-token: write
+        packages: write
+        actions: read
+        pull-requests: read
+    steps:
+      - name: 'Checkout'
+        uses: actions/checkout@master
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v1'
+            # Update the values with the output from the setup step
+        with:
+            workload_identity_provider: projects/203546026970/locations/global/workloadIdentityPools/github-jomcyg/providers/github
+            service_account: sa-jomcyggithub-gcloudauth@jmc-devsecops.iam.gserviceaccount.com   
+      - name: Download tfplan
+        uses: actions/download-artifact@v4
+        with:
+          name: tf-plan
+      - name: Terraform Apply
+        id: tf-apply
+        run: |
+            ls
+            terraform init 
+            terraform apply --auto-approve ./test.tfplan
+                
+                
+                
