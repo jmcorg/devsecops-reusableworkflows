@@ -43,6 +43,5 @@ jobs:
             terraform init 
             # use env.tfvars
             terraform apply --auto-approve ./test.tfplan   
-                
-                c
+            
                 
