@@ -102,7 +102,7 @@ jobs:
         id: fmtval
         run: |
               terraform init
-              terraform plan -out=test.tfplan
+              terraform plan -lock=false -out=test.tfplan
         
       - name: 'Upload tfplan'
         uses: actions/upload-artifact@v4
