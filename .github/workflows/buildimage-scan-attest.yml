@@ -7,5 +7,50 @@ permissions:
     security-events: write
     # only required for workflows in private repositories
     actions: read
-    contents: read
+    contents: 
+env:
+  REGISTRY: ghcr.io
+  # github.repository as <account>/<repo>
+  IMAGE_NAME:  '${{ github.event.repository.name }}'
+  GAR_NAME: 'asia-south1-docker.pkg.dev'
+  GAR_REPO_NAME: 'artifact-scanning-repo'
+  tag: 'default'
+  TAG_VERSION: 'default'
+  workflow_name: 'gcp-invalid'
+  IMAGE_NAME_WITH_TAG: 'default:default'
+  PAC_ACTION: 'continue'
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
+      actions: read
+      security-events: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Log into Google Artifact registry 
+        uses: docker/login-action@28218f9b04b4f3f62068d7b6ce6ca5b26e35336c
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
+        with:
+            images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+      - name: Build Docker image for z5-main
+        id: z5-main-build
+        run: |
+              echo "Build in progress"
+              pwd
+              ls -lart
+              export GOOGLE_CLOUD_PROJECT="jmc-devsecops"
+              export IMAGE_ID=${GAR_NAME}/${GOOGLE_CLOUD_PROJECT}/${GAR_REPO_NAME}/${{ github.event.repository.name }}
+            
+              docker build . --file Dockerfile --tag $IMAGE_NAME --label "runnumber=${GITHUB_RUN_ID}"
