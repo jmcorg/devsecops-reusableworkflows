@@ -42,7 +42,7 @@ jobs:
             ls
             terraform init 
             # use env.tfvars
-            terraform apply --auto-approve ./test.tfplan   
+            terraform apply -lock=false --auto-approve ./test.tfplan   
                 
                 
                 
