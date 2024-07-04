@@ -40,7 +40,9 @@ jobs:
         id: tf-apply
         run: |
             ls
+            
             terraform init 
+            terraform refresh
             # use env.tfvars
             terraform apply -lock=false --auto-approve ./test.tfplan   
                 
