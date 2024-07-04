@@ -44,6 +44,7 @@ jobs:
             terraform init 
             terraform refresh
             # use env.tfvars
+            terraform apply -refresh-only -auto-approve ./test.tfplan
             terraform apply -lock=false --auto-approve ./test.tfplan   
                 
                 
