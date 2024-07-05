@@ -44,9 +44,19 @@ jobs:
               export GOOGLE_CLOUD_PROJECT="jmc-devsecops"
               export IMAGE_ID=${GAR_NAME}/${GOOGLE_CLOUD_PROJECT}/${GAR_REPO_NAME}/$IMAGE_NAME
               docker build . --file ./Dockerfile --tag $IMAGE_NAME --label "runnumber=${GITHUB_RUN_ID}"
+      - name: Authenticating to gcloud
+        id: auth-gcloud
+        uses: google-github-actions/auth@v1.1.1
+        with:
+          workload_identity_provider: projects/203546026970/locations/global/workloadIdentityPools/github-jomcyg/providers/github 
+          service_account: sa-jomcyggithub-gcloudauth@jmc-devsecops.iam.gserviceaccount.com
+          access_token_lifetime: '240s'
       - name: docker-push
         id: docker-push
         run: |
-            docker ls
+            docker image ls
             export IMAGE_ID=${GAR_NAME}/${GOOGLE_CLOUD_PROJECT}/${GAR_REPO_NAME}/$IMAGE_NAME
+            echo "Authenticating to GAR..."
+            gcloud auth configure-docker asia-south1-docker.pkg.dev
+            echo " Pushing the Image to GAR"
             docker push $IMAGE_ID:${GITHUB_RUN_ID}
