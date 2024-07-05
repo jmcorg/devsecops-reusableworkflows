@@ -54,8 +54,21 @@ jobs:
       - name: docker-push
         id: docker-push
         run: |
-            docker image ls
+            
             export IMAGE_ID=${GAR_NAME}/${GOOGLE_CLOUD_PROJECT}/${GAR_REPO_NAME}/$IMAGE_NAME
+            # Change all uppercase to lowercase
+            IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
+
+            VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+            # Strip "v" prefix from tag name
+            [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
+            export tag=$VERSION-$(TZ='Asia/Calcutta' date "+%Y%m%d.%H%M")
+            echo tag=$tag >> $GITHUB_ENV
+            export TAG_VERSION=$tag
+            docker tag $IMAGE_NAME $IMAGE_ID:$TAG_VERSION
+            docker image ls
+
+
             echo "Authenticating to GAR..."
             gcloud auth configure-docker asia-south1-docker.pkg.dev
             echo " Pushing the Image to GAR"
