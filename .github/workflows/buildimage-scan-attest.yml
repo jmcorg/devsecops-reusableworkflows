@@ -59,12 +59,13 @@ jobs:
             # Change all uppercase to lowercase
             IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
 
-            VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
-            # Strip "v" prefix from tag name
-            [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
-            export tag=$VERSION-$(TZ='Asia/Calcutta' date "+%Y%m%d.%H%M")
-            echo tag=$tag >> $GITHUB_ENV
-            export TAG_VERSION=$tag
+            # VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+            # # Strip "v" prefix from tag name
+            # [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
+            # export tag=$VERSION-$(TZ='Asia/Calcutta' date "+%Y%m%d.%H%M")
+            # echo tag=$tag >> $GITHUB_ENV
+            # export TAG_VERSION=$tag
+            export TAG_VERSION=${GITHUB_RUN_ID}-$tag
             docker tag $IMAGE_NAME $IMAGE_ID:$TAG_VERSION
             docker image ls
 
@@ -72,4 +73,4 @@ jobs:
             echo "Authenticating to GAR..."
             gcloud auth configure-docker asia-south1-docker.pkg.dev
             echo " Pushing the Image to GAR"
-            docker push $IMAGE_ID:${GITHUB_RUN_ID}
+            docker push $IMAGE_ID:$TAG_VERSION
