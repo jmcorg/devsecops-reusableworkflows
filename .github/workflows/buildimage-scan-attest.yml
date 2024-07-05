@@ -52,7 +52,7 @@ jobs:
 
               docker build . --file ./Dockerfile --tag $TAG --label "runnumber=${GITHUB_RUN_ID}"
               docker image ls
-              echo "imageurl=$IMAGE_ID:$TAG_VERSION" >> $GITHUB_OUTPUT
+              echo "imageurlwithtag=$IMAGE_ID:$TAG" >> $GITHUB_OUTPUT
 
       - name: Authenticating to gcloud
         id: auth-gcloud
@@ -68,7 +68,7 @@ jobs:
             gcloud auth configure-docker asia-south1-docker.pkg.dev
             echo " Pushing the Image to GAR"
             docker push $IMAGE_ID:$TAG_VERSION
-            docker push ${{ steps.docker-build.outputs.imageurl }}
+            docker push ${{ steps.docker-build.outputs.imageurlwithtag }}
             # docker image inspect $IMAGE_ID:$TAG_VERSION --format '{{index .RepoDigests 0}}' > image-digest.txt &&
             # cat image-digest.txt
             
