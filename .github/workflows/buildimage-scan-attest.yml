@@ -2,6 +2,13 @@ name: "buildscanandsign"
 
 on:
    workflow_call:
+     inputs:
+      dockerfilepath:
+        description: The path of dockerfile 
+        type: string
+        required: false
+        default: '.'
+
 env:
   REGISTRY: ghcr.io
   # github.repository as <account>/<repo>
@@ -34,7 +41,7 @@ jobs:
               ls -lart
               export GOOGLE_CLOUD_PROJECT="jmc-devsecops"
               export IMAGE_ID=${GAR_NAME}/${GOOGLE_CLOUD_PROJECT}/${GAR_REPO_NAME}/$IMAGE_NAME
-              docker build . --file Dockerfile --tag $IMAGE_NAME --label "runnumber=${GITHUB_RUN_ID}"
+              docker build . --file ./app/Dockerfile --tag $IMAGE_NAME --label "runnumber=${GITHUB_RUN_ID}"
       - name: docker-push
         id: docker-push
         run: |
