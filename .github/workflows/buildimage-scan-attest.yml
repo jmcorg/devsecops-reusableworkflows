@@ -15,6 +15,7 @@ env:
   IMAGE_NAME:  '${{ github.event.repository.name }}'
   GAR_NAME: 'asia-south1-docker.pkg.dev'
   GAR_REPO_NAME: 'artifact-scanning-repo'
+  GOOGLE_CLOUD_PROJECT: 'jmc-devsecops'
   tag: 'default'
   TAG_VERSION: 'default'
   workflow_name: 'gcp-invalid'
@@ -40,10 +41,19 @@ jobs:
               cd ${{inputs.dockerfilepath}}
               pwd
               ls -lart
-              echo "Docker file is in ${{inputs.dockerfilepath}}"
-              export GOOGLE_CLOUD_PROJECT="jmc-devsecops"
+              
               export IMAGE_ID=${GAR_NAME}/${GOOGLE_CLOUD_PROJECT}/${GAR_REPO_NAME}/$IMAGE_NAME
-              docker build . --file ./Dockerfile --tag $IMAGE_NAME --label "runnumber=${GITHUB_RUN_ID}"
+              VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+              # Strip "v" prefix from tag name
+              [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
+              export TAG=${GITHUB_RUN_ID}-$VERSION-$(TZ='Asia/Calcutta' date "+%Y%m%d.%H%M")
+              # Change all uppercase to lowercase
+              IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
+
+              docker build . --file ./Dockerfile --tag $TAG --label "runnumber=${GITHUB_RUN_ID}"
+              docker image ls
+              echo "imageurl=$IMAGE_ID:$TAG_VERSION" >> $GITHUB_OUTPUT
+
       - name: Authenticating to gcloud
         id: auth-gcloud
         uses: google-github-actions/auth@v1.1.1
@@ -51,26 +61,14 @@ jobs:
           workload_identity_provider: projects/203546026970/locations/global/workloadIdentityPools/github-jomcyg/providers/github 
           service_account: sa-jomcyggithub-gcloudauth@jmc-devsecops.iam.gserviceaccount.com
           access_token_lifetime: '240s'
-      - name: docker-push
+      - name: docker-push to GAR
         id: docker-push
         run: |
-            
-            export IMAGE_ID=${GAR_NAME}/${GOOGLE_CLOUD_PROJECT}/${GAR_REPO_NAME}/$IMAGE_NAME
-            # Change all uppercase to lowercase
-            IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
-
-            VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
-            # Strip "v" prefix from tag name
-            [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
-            export tag=$VERSION-$(TZ='Asia/Calcutta' date "+%Y%m%d.%H%M")
-            echo tag=$tag >> $GITHUB_ENV
-            export TAG_VERSION=$tag
-            export TAG_VERSION=${GITHUB_RUN_ID}-$tag
-            docker tag $IMAGE_NAME $IMAGE_ID:$TAG_VERSION
-            docker image ls
-
-
             echo "Authenticating to GAR..."
             gcloud auth configure-docker asia-south1-docker.pkg.dev
             echo " Pushing the Image to GAR"
             docker push $IMAGE_ID:$TAG_VERSION
+            docker push ${{ steps.docker-build.outputs.imageurl }}
+            # docker image inspect $IMAGE_ID:$TAG_VERSION --format '{{index .RepoDigests 0}}' > image-digest.txt &&
+            # cat image-digest.txt
+            
