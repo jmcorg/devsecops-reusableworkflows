@@ -39,9 +39,10 @@ jobs:
               echo "Build in progress"
               pwd
               ls -lart
+              echo "Docker file is in ${{inputs.dockerfilepath}}"
               export GOOGLE_CLOUD_PROJECT="jmc-devsecops"
               export IMAGE_ID=${GAR_NAME}/${GOOGLE_CLOUD_PROJECT}/${GAR_REPO_NAME}/$IMAGE_NAME
-              docker build . --file ./app/Dockerfile --tag $IMAGE_NAME --label "runnumber=${GITHUB_RUN_ID}"
+              docker build . --file ${{inputs.dockerfilepath}}/Dockerfile --tag $IMAGE_NAME --label "runnumber=${GITHUB_RUN_ID}"
       - name: docker-push
         id: docker-push
         run: |
