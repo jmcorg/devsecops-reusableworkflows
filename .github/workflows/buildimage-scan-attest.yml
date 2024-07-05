@@ -50,7 +50,7 @@ jobs:
               # Change all uppercase to lowercase
               IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
 
-              docker build . --file ./Dockerfile --tag $TAG --label "runnumber=${GITHUB_RUN_ID}"
+              docker build . --file ./Dockerfile --tag $IMAGE_ID:$TAG --label "runnumber=${GITHUB_RUN_ID}"
               docker image ls
               echo "imageurlwithtag=$IMAGE_ID:$TAG" >> $GITHUB_OUTPUT
 
@@ -68,6 +68,5 @@ jobs:
             gcloud auth configure-docker asia-south1-docker.pkg.dev
             echo " Pushing the Image to GAR"
             docker push ${{ steps.docker-build.outputs.imageurlwithtag }}
-            # docker image inspect $IMAGE_ID:$TAG_VERSION --format '{{index .RepoDigests 0}}' > image-digest.txt &&
-            # cat image-digest.txt
+
             
