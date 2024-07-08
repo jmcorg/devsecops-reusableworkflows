@@ -12,14 +12,25 @@ on:
 env:
   REGISTRY: ghcr.io
   # github.repository as <account>/<repo>
-  IMAGE_NAME:  '${{ github.event.repository.name }}'
+  IMAGE_NAME: '${{ github.event.repository.name }}'
+  IMAGE_TAG: 'default'
   GAR_NAME: 'asia-south1-docker.pkg.dev'
   GAR_REPO_NAME: 'artifact-scanning-repo'
-  GOOGLE_CLOUD_PROJECT: 'jmc-devsecops'
-  tag: 'default'
-  TAG_VERSION: 'default'
-  workflow_name: 'gcp-invalid'
-  IMAGE_NAME_WITH_TAG: 'default:default'
+  GAR_PROJECT: 'jmc-devsecops'
+
+  ATTESTOR_PROJECT_ID: 'jmc-devsecops'
+  BUILD_ATTESTOR_NOTE_ID: ''
+  BUILD_ATTESTOR_NAME: ''
+  BUILD_ATTESTOR_EMAIL: ''
+  BUILD_ATTESTOR_ID: ''
+  KEY_PROJECT_ID: ''
+  KEY_LOCATION: ''
+  KEYRING: 'keyring-zee5-build-attestor'
+  BUILD_KEY_NAME: 'key-zee5-build-attestor'
+  BUILD_KEY_VERSION: '1'
+
+  
+  WF_NAME: 'gcp-invalid-wf'
   PAC_ACTION: 'continue'
 jobs:
   build:
@@ -42,17 +53,17 @@ jobs:
               pwd
               ls -lart
               
-              export IMAGE_ID=${GAR_NAME}/${GOOGLE_CLOUD_PROJECT}/${GAR_REPO_NAME}/$IMAGE_NAME
+              export IMAGE_ID=${GAR_NAME}/${GAR_PROJECT}/${GAR_REPO_NAME}/$IMAGE_NAME
               VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
               # Strip "v" prefix from tag name
               [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
-              export TAG=${GITHUB_RUN_ID}-$VERSION-$(TZ='Asia/Calcutta' date "+%Y%m%d.%H%M")
+              export IMAGE_TAG=${GITHUB_RUN_ID}-$VERSION-$(TZ='Asia/Calcutta' date "+%Y%m%d.%H%M")
               # Change all uppercase to lowercase
               IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
 
-              docker build . --file ./Dockerfile --tag $IMAGE_ID:$TAG --label "runnumber=${GITHUB_RUN_ID}"
+              docker build . --file ./Dockerfile --tag $IMAGE_ID:$IMAGE_TAG --label "runnumber=${GITHUB_RUN_ID}"
               docker image ls
-              echo "imageurlwithtag=$IMAGE_ID:$TAG" >> $GITHUB_OUTPUT
+              echo "imageurlwithtag=$IMAGE_ID:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
       - name: Authenticating to gcloud
         id: auth-gcloud
@@ -68,5 +79,97 @@ jobs:
             gcloud auth configure-docker asia-south1-docker.pkg.dev
             echo " Pushing the Image to GAR"
             docker push ${{ steps.docker-build.outputs.imageurlwithtag }}
+
+      - name: Attest with Build Attestor
+        run: |
+              
+              echo  "ATTESTOR_PROJECT_ID-->${{env.ATTESTOR_PROJECT_ID}}"
+              gcloud projects describe "${{env.ATTESTOR_PROJECT_ID}}"
+              export ATTESTOR_PROJECT_NUMBER=$(gcloud projects describe "${{env.ATTESTOR_PROJECT_ID}}" --format="value(projectNumber)")
+              # BinAuthZ Service Acccount Email
+              export ATTESTOR_SERVICE_ACCOUNT="service-${ATTESTOR_PROJECT_NUMBER}@gcp-sa-binaryauthorization.iam.gserviceaccount.com"
+              echo "Attestor serviceaccount-->$ATTESTOR_SERVICE_ACCOUNT"
+
+  
+              # Set the GAR path you will use to host the container image
+              export CONTAINER_PATH=asia-south1-docker.pkg.dev/${{env.GAR_PROJECT}}/${{env.GAR_REPO_NAME}}/${{ github.event.repository.name }}
+
+              # Get digest from container we created
+              DIGEST=$(gcloud container images describe ${{ steps.docker-build.outputs.imageurlwithtag }} \
+              --format='get(image_summary.digest)')
+              export ARTIFACT_URL="$(gcloud container images describe ${{ steps.docker-build.outputs.imageurlwithtag }} --format='value(image_summary.fully_qualified_digest)')"
+
+            
+              echo " DEPLOY_IMAGE is ${{ steps.docker-build.outputs.imageurlwithtag }}"
+              echo "ARTIFACT_URL: $ARTIFACT_URL and Cmnd url: ${CONTAINER_PATH}@${DIGEST}"
+              green='\033[0;32m'
+              echo -e "{$green}Ready to sign the Image--> ${{ steps.docker-build.outputs.imageurlwithtag }}"
+
+
+              # create a temporary payload json that will be used to create our signed attestation
+              gcloud beta container binauthz create-signature-payload --artifact-url=${ARTIFACT_URL} > /tmp/generated_payload.json
+
+               # Sign and create attestation for container
+              gcloud beta container binauthz attestations sign-and-create  \
+              --artifact-url="${CONTAINER_PATH}@${DIGEST}" \
+              --attestor="projects/${{env.ATTESTOR_PROJECT_ID}}/attestors/${{env.BUILD_ATTESTOR_ID}}" \
+              --attestor-project="${{env.ATTESTOR_PROJECT_ID}}" \
+              --keyversion-project="${{env.KEY_PROJECT_ID}}" \
+              --keyversion-location="${{env.KEY_LOCATION}}" \
+              --keyversion-keyring="${{env.KEYRING}}" \
+              --keyversion-key="${{env.BUILD_KEY_NAME}}" \
+              --keyversion="${{env.BUILD_KEY_VERSION}}" \
+              --validate
+
+              echo "Waiting for container to be signed..."
+              green='\033[0;32m'
+              echo -e "{$green}Listing the attestations on Container Image to verify..."
+              sleep 5
+              gcloud beta container binauthz attestations list \
+              --attestor="projects/${{env.ATTESTOR_PROJECT_ID}}/attestors/${{env.BUILD_ATTESTOR_ID}}" \
+              --artifact-url="${CONTAINER_PATH}@${DIGEST}"
+             
+              echo "Attestation created by Attestor: ${BUILD_ATTESTOR_ID} for Image: ${ARTIFACT_URL}"
+
+              
+  DisplayImageVulnerabilities:
+    name: LIST IMAGE DIGEST AND VULNERABILITIES
+    needs: 
+      - build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+     - uses: actions/checkout@v3
+     - name: Authenticating to gcloud
+       id: auth-gcloud
+       uses: google-github-actions/auth@v1.1.1
+       with:
+          workload_identity_provider: projects/251360461095/locations/global/workloadIdentityPools/wifpool-zee5-nonprod-devops-gha/providers/wifprov-zee5-nonprod-devops-gha	
+          service_account: sa-zee5-nonprod-devops-gha@prj-zee5-nonprod-secrets-bvvxm.iam.gserviceaccount.com
+     - name: DISPLAY IMAGE DIGEST and VULNERABILITIES
+       run: |
+           echo "DISPLAYING IMAGE DIGEST"
+           red='\033[0;31m'
+           green='\033[0;32m'
+           blue='\033[0;34m'
+           echo -e "${green}<======= USE IMAGE DIGEST FROM BELOW DETAILS FOR CONFIGURING DEPLOYMENT YAMLS ======>" 
+           export CONTAINER_PATH=asia-south1-docker.pkg.dev/${{env.GAR_PROJECT}}/${{env.GAR_REPO_NAME}}/${{ github.event.repository.name }}
+           sleep 30
+           gcloud artifacts docker images list ${CONTAINER_PATH} --limit=1 --include-tags --project=prj-zee5-trustimages-goab8es0k --sort-by=~UPDATE_TIME --format text
+           echo -e "\n\n\\n"
+           echo "DISPLAYING IMAGE VULNERABILITIES"
+           echo -e "${blue}<=======######## LISTING VULNERABILITIES OF THE IMAGE PUSHED TO GOOGLE ARTIFACT REGISTRY####### ======>"
+           echo -e "######## ${green}ATTENTION: If you have any ${red}CRITICAL ${green}Vulnerabilities identified in the list, ${red}FIX IT IMMEDIALTELY ${green}and Contact appsec@zee.com team for assistance ########"
+
+           gcloud artifacts vulnerabilities list ${{inputs.app_imageurl}}
+              
+           export NUM_CRITICAL_VULN=$(gcloud artifacts vulnerabilities list ${{inputs.app_imageurl}} |grep CRITICAL|wc -l)
+           if [ "$NUM_CRITICAL_VULN" -eq 0 ]; then
+            echo "There are $NUM_CRITICAL_VULN Crtical Vulnerabilities reported , READY FOR PROD"
+           else   
+           echo  -e "${red}<======= There are $NUM_CRITICAL_VULN Crtical Vulnerabilities reported.Please correct the same and raise a PR to z5-main branch =======>"
+           fi
 
             
