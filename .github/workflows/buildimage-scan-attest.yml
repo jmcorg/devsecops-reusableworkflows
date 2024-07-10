@@ -51,6 +51,10 @@ jobs:
           workload_identity_provider: projects/203546026970/locations/global/workloadIdentityPools/github-jomcyg/providers/github 
           service_account: sa-jomcyggithub-gcloudauth@jmc-devsecops.iam.gserviceaccount.com
           access_token_lifetime: '300s'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v2'
+        with:
+          version: '>= 363.0.0'
       - name: Build Docker image
         id: docker-build
         run: |
