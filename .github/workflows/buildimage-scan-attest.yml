@@ -143,7 +143,7 @@ jobs:
            echo -e "\n\n\\n"
            echo "DISPLAYING IMAGE VULNERABILITIES"
            echo -e "${blue}<=======######## LISTING VULNERABILITIES OF THE IMAGE PUSHED TO GOOGLE ARTIFACT REGISTRY####### ======>"
-           echo -e "######## ${green}ATTENTION: If you have any ${red}CRITICAL ${green}Vulnerabilities identified in the list, ${red}FIX IT IMMEDIALTELY ${green}and Contact appsec@zee.com team for assistance ########"
+           echo -e "######## ${green}ATTENTION: If you have any ${red}CRITICAL ${green}Vulnerabilities identified in the list, ${red}FIX IT IMMEDIALTELY ${green}and Contact appsec@jmcorg.com team for assistance ########"
 
            gcloud artifacts vulnerabilities list ${{ steps.docker-build.outputs.imageurlwithtag }}
               
