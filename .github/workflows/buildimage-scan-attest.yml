@@ -33,7 +33,8 @@ env:
   PAC_ACTION: 'continue'
 jobs:
   build:
-    runs-on: ubuntu-latest
+    #runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     permissions:
       contents: read
       id-token: write
