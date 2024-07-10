@@ -44,6 +44,13 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+      - name: Authenticating to gcloud
+        id: auth-gcloud
+        uses: google-github-actions/auth@v1.1.1
+        with:
+          workload_identity_provider: projects/203546026970/locations/global/workloadIdentityPools/github-jomcyg/providers/github 
+          service_account: sa-jomcyggithub-gcloudauth@jmc-devsecops.iam.gserviceaccount.com
+          access_token_lifetime: '300s'
       - name: Build Docker image
         id: docker-build
         run: |
@@ -61,16 +68,13 @@ jobs:
               IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
 
               docker build . --file ./Dockerfile --tag $IMAGE_ID:$IMAGE_TAG --label "runnumber=${GITHUB_RUN_ID}"
-              docker image ls
+              docker image
+              # ondemand Scan 
+              gcloud artifacts docker images scan $IMAGE_ID:$IMAGE_TAG 
+               
               echo "imageurlwithtag=$IMAGE_ID:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-      - name: Authenticating to gcloud
-        id: auth-gcloud
-        uses: google-github-actions/auth@v1.1.1
-        with:
-          workload_identity_provider: projects/203546026970/locations/global/workloadIdentityPools/github-jomcyg/providers/github 
-          service_account: sa-jomcyggithub-gcloudauth@jmc-devsecops.iam.gserviceaccount.com
-          access_token_lifetime: '240s'
+  
       - name: docker-push to GAR
         id: docker-push
         run: |
