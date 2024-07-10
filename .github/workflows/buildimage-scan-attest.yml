@@ -68,7 +68,7 @@ jobs:
               IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
 
               docker build . --file ./Dockerfile --tag $IMAGE_ID:$IMAGE_TAG --label "runnumber=${GITHUB_RUN_ID}"
-              docker image
+              docker image ls
               # ondemand Scan 
               gcloud artifacts docker images scan $IMAGE_ID:$IMAGE_TAG 
                
