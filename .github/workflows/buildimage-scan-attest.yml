@@ -75,18 +75,29 @@ jobs:
               docker build . --file ./Dockerfile --tag $IMAGE_ID:$IMAGE_TAG --label "runnumber=${GITHUB_RUN_ID}"
               docker image ls
               # ondemand Scan 
-              sudo gcloud artifacts docker images scan $IMAGE_ID:$IMAGE_TAG --quiet
+              # gcloud artifacts docker images scan $IMAGE_ID:$IMAGE_TAG --quiet
+              docker save -o ${{ github.sha }} $IMAGE_ID:$IMAGE_TAG
                
               echo "imageurlwithtag=$IMAGE_ID:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-  
+      - name: Run Clair V4
+        uses: quay/clair-action@main
+        with:
+          image-path: ${{ github.sha }}
+          format: sarif
+          output: clair_results.sarif
+
+      - name: Upload sarif
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: clair_results.sarif
       - name: docker-push to GAR
         id: docker-push
         run: |
-            echo "Authenticating to GAR..."
-            gcloud auth configure-docker asia-south1-docker.pkg.dev
-            echo " Pushing the Image to GAR"
-            docker push ${{ steps.docker-build.outputs.imageurlwithtag }}
+              echo "Authenticating to GAR..."
+              gcloud auth configure-docker asia-south1-docker.pkg.dev
+              echo " Pushing the Image to GAR"
+              docker push ${{ steps.docker-build.outputs.imageurlwithtag }}
 
       - name: Attest with Build Attestor
         run: |
