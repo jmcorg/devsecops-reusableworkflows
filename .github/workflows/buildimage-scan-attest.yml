@@ -82,7 +82,7 @@ jobs:
       - name: Scan image
         uses: anchore/scan-action@v3
         with:
-          image: "$IMAGE_ID:$IMAGE_TAG"
+          image: ${{ steps.docker-build.outputs.imageurlwithtag }}
       - name: docker-push to GAR
         id: docker-push
         run: |
