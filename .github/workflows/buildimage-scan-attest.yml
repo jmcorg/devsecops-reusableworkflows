@@ -126,7 +126,7 @@ jobs:
 
 
               # create a temporary payload json that will be used to create our signed attestation
-              gcloud beta container binauthz create-signature-payload --artifact-url=${ARTIFACT_URL} > /tmp/generated_payload.json --quiet
+              gcloud beta container binauthz create-signature-payload --artifact-url=${ARTIFACT_URL} > /tmp/generated_payload.json 
 
                # Sign and create attestation for container
               gcloud beta container binauthz attestations sign-and-create  \
@@ -138,9 +138,7 @@ jobs:
               --keyversion-keyring="${{env.KEYRING}}" \
               --keyversion-key="${{env.BUILD_KEY_NAME}}" \
               --keyversion="${{env.BUILD_KEY_VERSION}}" \
-              --validate \
-              --quiet
-           
+              --validate 
 
               echo "Waiting for container to be signed..."
               green='\033[0;32m'
