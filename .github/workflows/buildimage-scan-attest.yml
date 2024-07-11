@@ -75,7 +75,7 @@ jobs:
               docker build . --file ./Dockerfile --tag $IMAGE_ID:$IMAGE_TAG --label "runnumber=${GITHUB_RUN_ID}"
               docker image ls
               # ondemand Scan 
-              gcloud artifacts docker images scan $IMAGE_ID:$IMAGE_TAG --quiet
+              sudo gcloud artifacts docker images scan $IMAGE_ID:$IMAGE_TAG --quiet
                
               echo "imageurlwithtag=$IMAGE_ID:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
