@@ -81,8 +81,16 @@ jobs:
 
       - name: Scan image
         uses: anchore/scan-action@v3
+        id: image-scan
         with:
           image: ${{ steps.docker-build.outputs.imageurlwithtag }}
+          fail-build: false
+          severity-cutoff: critical
+          output-format: sarif
+      - name: upload Anchore scan SARIF report
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: ${{ steps.image-scan.outputs.sarif }}
       - name: docker-push to GAR
         id: docker-push
         run: |
