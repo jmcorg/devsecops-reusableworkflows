@@ -83,7 +83,7 @@ jobs:
       - name: Run Clair V4
         uses: quay/clair-action@main
         with:
-          image-path: ${{ github.sha }}
+          image-path: ${{inputs.dockerfilepath}}/${{ github.sha }}
           format: sarif
           output: clair_results.sarif
 
