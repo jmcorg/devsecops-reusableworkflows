@@ -138,7 +138,8 @@ jobs:
               --keyversion-keyring="${{env.KEYRING}}" \
               --keyversion-key="${{env.BUILD_KEY_NAME}}" \
               --keyversion="${{env.BUILD_KEY_VERSION}}" \
-              --validate
+              --validate \
+              --quiet
            
 
               echo "Waiting for container to be signed..."
